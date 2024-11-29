@@ -22,12 +22,3 @@ _Image Recognition_
 Upload a photo, and the bot will describe its content using the CLIP model.
 
 
-
-**File Structure**
-
-shinobu-chatbot/
-│
-├── main.py                # Main application script
-├── requirements.txt       # Python dependencies
-├── README.md              # Project documentation
-└── temp_image.jpg         # Temporary file for image processing (auto-created)
