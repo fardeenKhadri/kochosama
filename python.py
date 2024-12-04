@@ -1,4 +1,6 @@
 import os
+import cv2
+import numpy as np
 from telegram import Update, InputFile
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
 from groq import Groq
@@ -50,11 +52,22 @@ def get_shinobu_response(user_message):
         print(f"An error occurred: {e}")
         return "I'm sorry, something went wrong. Please try again."
 
-# Function to process an image using CLIP
+# Function to process an image using OpenCV and feed to Groq
 def process_image(image_path):
-    # Open the image
-    image = Image.open(image_path)
-    inputs = processor(images=image, return_tensors="pt")
+    # Read the image using OpenCV
+    image = cv2.imread(image_path)
+
+    # Convert the image to RGB (since OpenCV loads it in BGR format)
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    # Resize image to 224x224 (required by CLIP model)
+    image_resized = cv2.resize(image_rgb, (224, 224))
+
+    # Convert image to PIL for compatibility with CLIP model
+    pil_image = Image.fromarray(image_resized)
+
+    # Use CLIP Processor to process the image
+    inputs = processor(images=pil_image, return_tensors="pt")
 
     # Labels for matching
     general_labels = [
