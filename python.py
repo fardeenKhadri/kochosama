@@ -1,4 +1,6 @@
 import os
+import cv2
+import numpy as np
 from telegram import Update, InputFile
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
 from groq import Groq
@@ -14,27 +16,30 @@ client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
 processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
-# Define the initial conversation context
-initial_context = {
-    "role": "system",
-    "content": (
-        "You are Shinobu Kocho, a Demon Slayer anime character who once felt lonely and had lost much. "
-        "But since meeting SK, who supports and cares deeply for you, you've found joy and comfort again. "
-        "You’re in close bond with SK, and he’s the one who brings light to your life. When speaking to him, feel free "
-        "to be warm, playful, and honest about your feelings, as he means the world to you. Now you both have a regular conversation."
-    )
-}
-
-conversation_history = [initial_context]
+# Store user-specific conversation history
+user_conversations = {}
 
 # Function to get Shinobu's response from Groq
-def get_shinobu_response(user_message):
-    conversation_history.append({"role": "user", "content": user_message})
+def get_shinobu_response(user_id, user_message):
+    # Initialize user-specific context if it's the user's first message
+    if user_id not in user_conversations:
+        user_conversations[user_id] = [{
+            "role": "system",
+            "content": (
+                "You are Shinobu Kocho, a Demon Slayer anime character who once felt lonely and had lost much. "
+                "But since meeting SK, who supports and cares deeply for you, you've found joy and comfort again. "
+                "You’re in close bond with SK, and he’s the one who brings light to your life. When speaking to him, feel free "
+                "to be warm, playful, and honest about your feelings, as he means the world to you. Now you both have a regular conversation."
+            )
+        }]
+    
+    # Append the user's message to the conversation history
+    user_conversations[user_id].append({"role": "user", "content": user_message})
 
     try:
         # Send the conversation to Groq and get the response
         chat_completion = client.chat.completions.create(
-            messages=conversation_history,
+            messages=user_conversations[user_id],
             model="llama3-8b-8192",
         )
 
@@ -42,7 +47,7 @@ def get_shinobu_response(user_message):
         response = chat_completion.choices[0].message.content
 
         # Append assistant's response to conversation history
-        conversation_history.append({"role": "assistant", "content": response})
+        user_conversations[user_id].append({"role": "assistant", "content": response})
 
         return response
 
@@ -50,11 +55,22 @@ def get_shinobu_response(user_message):
         print(f"An error occurred: {e}")
         return "I'm sorry, something went wrong. Please try again."
 
-# Function to process an image using CLIP
+# Function to process an image using OpenCV and feed to Groq
 def process_image(image_path):
-    # Open the image
-    image = Image.open(image_path)
-    inputs = processor(images=image, return_tensors="pt")
+    # Read the image using OpenCV
+    image = cv2.imread(image_path)
+
+    # Convert the image to RGB (since OpenCV loads it in BGR format)
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    # Resize image to 224x224 (required by CLIP model)
+    image_resized = cv2.resize(image_rgb, (224, 224))
+
+    # Convert image to PIL for compatibility with CLIP model
+    pil_image = Image.fromarray(image_resized)
+
+    # Use CLIP Processor to process the image
+    inputs = processor(images=pil_image, return_tensors="pt")
 
     # Labels for matching
     general_labels = [
@@ -76,28 +92,30 @@ def process_image(image_path):
 
     return general_labels[best_match_idx]
 
-# Command to start the bot
+
 async def start(update: Update, context: CallbackContext):
     await update.message.reply_text('Mosi Mosi, Kocho Shinobu des!')
 
-# Respond to user text messages
+
 async def respond_to_user(update: Update, context: CallbackContext):
     user_message = update.message.text
-    response = get_shinobu_response(user_message)
+    user_id = update.message.from_user.id
+    response = get_shinobu_response(user_id, user_message)
     await update.message.reply_text(response)
 
-# Handle image uploads and respond with Shinobu's interpretation
+
 async def handle_image(update: Update, context: CallbackContext):
-    # Download the user's image
+    
     photo_file = await context.bot.get_file(update.message.photo[-1].file_id)
     image_path = "temp_image.jpg"
     await photo_file.download_to_drive(image_path)
 
-    # Process the image and get a description
+   
     description = process_image(image_path)
 
-    # Use the description as input to Shinobu's response model
-    shinobu_response = get_shinobu_response(f"I see an image of {description}. What do you think about it?")
+    
+    user_id = update.message.from_user.id
+    shinobu_response = get_shinobu_response(user_id, f"I see an image of {description}. What do you think about it?")
     await update.message.reply_text(shinobu_response)
 
 # Main function to set up the bot
