@@ -14,7 +14,6 @@ client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
 processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
-<<<<<<< HEAD
 user_conversations = {}
 
 def get_shinobu_response(user_id, user_message):
@@ -29,26 +28,6 @@ def get_shinobu_response(user_id, user_message):
             )
         }]
 
-=======
-# Store user-specific conversation history
-user_conversations = {}
-
-# Function to get Shinobu's response from Groq
-def get_shinobu_response(user_id, user_message):
-    # Initialize user-specific context if it's the user's first message
-    if user_id not in user_conversations:
-        user_conversations[user_id] = [{
-            "role": "system",
-            "content": (
-                "You are Shinobu Kocho, a Demon Slayer anime character who once felt lonely and had lost much. "
-                "But since meeting SK, who supports and cares deeply for you, you've found joy and comfort again. "
-                "You’re in close bond with SK, and he’s the one who brings light to your life. When speaking to him, feel free "
-                "to be warm, playful, and honest about your feelings, as he means the world to you. Now you both have a regular conversation."
-            )
-        }]
-    
-    # Append the user's message to the conversation history
->>>>>>> 7f69387f48c6227d89c9ef136f716e3d8f7f2442
     user_conversations[user_id].append({"role": "user", "content": user_message})
 
     try:
@@ -59,10 +38,6 @@ def get_shinobu_response(user_id, user_message):
 
         response = chat_completion.choices[0].message.content
 
-<<<<<<< HEAD
-=======
-        # Append assistant's response to conversation history
->>>>>>> 7f69387f48c6227d89c9ef136f716e3d8f7f2442
         user_conversations[user_id].append({"role": "assistant", "content": response})
 
         return response
@@ -71,7 +46,6 @@ def get_shinobu_response(user_id, user_message):
         print(f"An error occurred: {e}")
         return "I'm sorry, something went wrong. Please try again."
 
-<<<<<<< HEAD
 def process_image(image_path):
     image = cv2.imread(image_path)
 
@@ -81,23 +55,6 @@ def process_image(image_path):
 
     pil_image = Image.fromarray(image_resized)
 
-=======
-# Function to process an image using OpenCV and feed to Groq
-def process_image(image_path):
-    # Read the image using OpenCV
-    image = cv2.imread(image_path)
-
-    # Convert the image to RGB (since OpenCV loads it in BGR format)
-    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-    # Resize image to 224x224 (required by CLIP model)
-    image_resized = cv2.resize(image_rgb, (224, 224))
-
-    # Convert image to PIL for compatibility with CLIP model
-    pil_image = Image.fromarray(image_resized)
-
-    # Use CLIP Processor to process the image
->>>>>>> 7f69387f48c6227d89c9ef136f716e3d8f7f2442
     inputs = processor(images=pil_image, return_tensors="pt")
 
     general_labels = [
@@ -133,10 +90,6 @@ async def handle_image(update: Update, context: CallbackContext):
 
     description = process_image(image_path)
 
-<<<<<<< HEAD
-=======
-    # Use the description as input to Shinobu's response model
->>>>>>> 7f69387f48c6227d89c9ef136f716e3d8f7f2442
     user_id = update.message.from_user.id
     shinobu_response = get_shinobu_response(user_id, f"I see an image of {description}. What do you think about it?")
     await update.message.reply_text(shinobu_response)
