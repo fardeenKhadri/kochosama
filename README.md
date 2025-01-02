@@ -3,7 +3,7 @@ A code written in order to host a telegram bot, wherein conversation with the in
 
 **Features**
 Conversational AI: The bot engages in chat using the Groq AI API, specifically configured to emulate Shinobu Kocho's personality.
-Image Recognition: Leveraging the OpenAI CLIP model, the bot can analyze and describe uploaded images.
+Image Recognition: The bot can analyze and describe uploaded images.
 User Interaction: Simple command-based interface for starting the conversation and seamless interaction via text or photos.
 
 **Technologies Used**
